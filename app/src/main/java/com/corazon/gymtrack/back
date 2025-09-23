@@ -1,0 +1,206 @@
+package com.corazon.gymtrack
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable // Tu avais déjà cet import, c'est bien
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue // <-- MODIFICATION: Import nécessaire pour la syntaxe 'by'
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.corazon.gymtrack.R
+import com.corazon.gymtrack.ui.theme.GymTrackTheme
+import kotlin.math.round
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            GymTrackTheme {
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    Greeting(
+                        name = "Android",
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+
+@Composable
+fun Greeting(name: String, modifier: Modifier = Modifier) {
+    val message = remember { mutableStateOf("Mes Entraînements") }
+
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // --- BARRE SUPÉRIEURE AVEC COULEUR DE FOND ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF2C2C2E)) // <-- MODIFICATION: Ajout d'une couleur de fond (gris foncé iOS)
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 5.dp), // <-- MODIFICATION: Ajout du padding en bas
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = message.value,
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Image(
+                // C'est la ligne la plus importante :
+                painter = painterResource(id = R.drawable.round),
+
+                // C'est important pour l'accessibilité (lecteurs d'écran)
+                contentDescription = "Logo GymTracker",
+
+                // Tu peux ajouter des modificateurs pour la taille, etc.
+
+                modifier = Modifier
+                    .height(35.dp)
+            )
+        }
+
+        // --- SÉPARATEUR ---
+        Divider(
+            modifier = Modifier.fillMaxWidth(),
+            thickness = 1.dp,
+            color = Color.DarkGray // <-- MODIFICATION: Couleur ajustée pour être visible
+        )
+
+        Spacer(modifier = Modifier.height(32.dp)) // Plus d'espace avant la nouvelle section
+
+        Text(
+            text = "ACTIONS RAPIDES",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        // --- LIGNE DE BOUTONS ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val buttonModifier = Modifier.weight(1f)
+            val buttonPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+            val buttonFontSize = 12.sp
+
+            Button(
+                modifier = buttonModifier,
+                contentPadding = buttonPadding,
+                onClick = { /* ... */ },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+            ) { Text(text = "Créer", fontSize = buttonFontSize) }
+
+            Button(
+                modifier = buttonModifier,
+                contentPadding = buttonPadding,
+                onClick = { /* ... */ },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+            ) { Text(text = "Planning", fontSize = buttonFontSize) }
+
+            Button(
+                modifier = buttonModifier,
+                contentPadding = buttonPadding,
+                onClick = { /* ... */ },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+            ) { Text(text = "Notes", fontSize = buttonFontSize) }
+
+            Button(
+                modifier = buttonModifier,
+                contentPadding = buttonPadding,
+                onClick = { /* ... */ },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+            ) { Text(text = "Stats", fontSize = buttonFontSize) }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, start = 0.dp, end = 16.dp, bottom = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "MES PROGRAMMES",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+
+            var test by remember { mutableStateOf("Voir tout") }
+            TextButton(
+                onClick = {if(test == "Voir tout") {test = "zob"} else {test = "Voir tout"} }
+            ) {
+                Text(
+                    text = test,
+                    color = Color.White, // Important sur un fond sombre !
+                    fontSize = 14.sp     // Tu peux styliser le texte comme tu veux
+                )
+            }
+        }
+
+
+
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GreetingPreview() {
+    GymTrackTheme {
+        // Pour un meilleur aperçu, on peut simuler le fond sombre du thème
+        Column(modifier = Modifier.background(Color.Black)) {
+            Greeting("Android")
+        }
+    }
+}

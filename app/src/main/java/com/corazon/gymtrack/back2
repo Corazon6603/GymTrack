@@ -1,0 +1,242 @@
+package com.corazon.gymtrack
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.corazon.gymtrack.ui.theme.GymRed
+import com.corazon.gymtrack.ui.theme.GymSecondaryText
+import com.corazon.gymtrack.ui.theme.GymTopBar
+import com.corazon.gymtrack.ui.theme.GymTrackTheme
+import com.corazon.gymtrack.ui.theme.Pink40
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            GymTrackTheme {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = Color.Black
+                ) { innerPadding ->
+                    MainScreen(modifier = Modifier.padding(innerPadding))
+                }
+            }
+        }
+    }
+}
+
+// --- COMPOSANT 1 : LA BARRE DU HAUT ---
+@Composable
+fun TopBar(title: String) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(GymTopBar)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = title, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.weight(1f))
+            Image(
+                painter = painterResource(id = R.drawable.round),
+                contentDescription = "Icône de profil",
+                modifier = Modifier.size(35.dp)
+            )
+        }
+        Divider(color = GymTopBar)
+    }
+}
+
+// --- COMPOSANT 2 : LA SECTION "ACTIONS RAPIDES" ---
+@Composable
+fun QuickActionsSection() {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(
+            text = "ACTIONS RAPIDES",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val buttonModifier = Modifier.weight(1f)
+            val buttonPadding = PaddingValues(vertical = 12.dp)
+            val buttonFontSize = 12.sp
+
+            // Cet appel est maintenant correct car la fonction ActionButton accepte 'textColor'
+            ActionButton("Créer", modifier = buttonModifier, contentPadding = buttonPadding, fontSize = buttonFontSize, textColor = GymSecondaryText)
+            ActionButton("Planning", modifier = buttonModifier, contentPadding = buttonPadding, fontSize = buttonFontSize, textColor = GymSecondaryText)
+            ActionButton("Notes", modifier = buttonModifier, contentPadding = buttonPadding, fontSize = buttonFontSize, textColor = GymSecondaryText)
+            ActionButton("Stats", modifier = buttonModifier, contentPadding = buttonPadding, fontSize = buttonFontSize, textColor = GymSecondaryText)
+        }
+    }
+}
+
+// === LA CORRECTION EST ICI ===
+// --- COMPOSANT (BONUS) : UN BOUTON D'ACTION GÉNÉRIQUE ---
+@Composable
+fun ActionButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues,
+    fontSize: TextUnit,
+    textColor: Color = Color.White // 1. On RAJOUTE le paramètre avec sa valeur par défaut
+) {
+    Button(
+        modifier = modifier,
+        contentPadding = contentPadding,
+        onClick = { /* ... */ },
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C2C2E))
+    ) {
+        // 2. On UTILISE le paramètre pour colorer le texte
+        Text(text = text, fontSize = fontSize, color = textColor)
+    }
+}
+
+// --- COMPOSANT 3 : L'EN-TÊTE DE SECTION ---
+@Composable
+fun SectionHeader(title: String) {
+    var buttonText by remember { mutableStateOf("Voir tout") }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = title, fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = {
+            buttonText = if (buttonText == "Voir tout") "Masquer" else "Voir tout"
+        }) {
+            Text(text = buttonText, color = GymRed, fontSize = 14.sp)
+        }
+    }
+}
+
+// --- COMPOSANT 4 : LA CARTE D'ENTRAÎNEMENT ---
+@Composable
+fun WorkoutCard(title: String, description: String, nbWeek: Int, nbWorkoutPerWeek: Int) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(id = R.drawable.img),
+                contentDescription = "Fond d'entraînement",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = { /* METS TON ACTION DE CLIC ICI */ }) {
+                        Image(
+                            painter = painterResource(id = R.drawable.menu_dots_vertical_invert),
+                            contentDescription = "Action personnalisée",
+                            modifier = Modifier.size(15.dp) // Un peu plus grand pour être cliquable
+                        )
+                    }
+                }
+                Text(
+                    text = description,
+                    color = Color.Gray, // Gris simple, plus lisible que transparent
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(top = 10.dp)
+                )
+            }
+            Text(
+                text = "$nbWeek semaines • $nbWorkoutPerWeek séances/sem",
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 16.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(16.dp)
+            )
+        }
+    }
+}
+
+// --- L'ÉCRAN PRINCIPAL ---
+@Composable
+fun MainScreen(modifier: Modifier = Modifier) {
+    val title = remember { mutableStateOf("Mes Entraîenements") }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        TopBar(title = title.value)
+        Spacer(modifier = Modifier.height(24.dp))
+        QuickActionsSection()
+        Spacer(modifier = Modifier.height(24.dp))
+        SectionHeader(title = "MES PROGRAMMES")
+        Spacer(modifier = Modifier.height(8.dp))
+        WorkoutCard("Entraînement du Jour", "Pectoraux & Triceps", 12, 4)
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+fun GreetingPreview() {
+    GymTrackTheme {
+        MainScreen()
+    }
+}
