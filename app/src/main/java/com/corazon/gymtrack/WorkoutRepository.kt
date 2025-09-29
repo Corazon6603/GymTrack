@@ -1,11 +1,14 @@
 package com.corazon.gymtrack
 
 import android.content.Context
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.IOException
 
+// On ajoute l'annotation "OptIn" ici pour tout le fichier
+@OptIn(InternalSerializationApi::class)
 class WorkoutRepository(private val context: Context) {
 
     private val fileName = "workouts.json"
@@ -17,7 +20,7 @@ class WorkoutRepository(private val context: Context) {
                 it.write(jsonString.toByteArray())
             }
         } catch (e: IOException) {
-            e.printStackTrace() // Gère l'erreur comme il se doit
+            e.printStackTrace()
         }
     }
 
@@ -25,14 +28,14 @@ class WorkoutRepository(private val context: Context) {
         return try {
             val file = File(context.filesDir, fileName)
             if (!file.exists()) {
-                emptyList() // Si le fichier n'existe pas, retourne une liste vide
+                emptyList()
             } else {
                 val jsonString = context.openFileInput(fileName).bufferedReader().use { it.readText() }
                 Json.decodeFromString(jsonString)
             }
         } catch (e: IOException) {
             e.printStackTrace()
-            emptyList() // En cas d'erreur, retourne une liste vide
+            emptyList()
         }
     }
 }

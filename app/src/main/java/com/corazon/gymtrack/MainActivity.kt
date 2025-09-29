@@ -1,5 +1,6 @@
 package com.corazon.gymtrack
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -64,6 +66,7 @@ import com.corazon.gymtrack.ui.theme.GymBackgroundColor
 import com.corazon.gymtrack.ui.theme.GymRed
 import com.corazon.gymtrack.ui.theme.GymSecondaryBackgroundColor
 import com.corazon.gymtrack.ui.theme.GymTrackTheme
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 
 data class BottomNavItem(
@@ -71,6 +74,7 @@ data class BottomNavItem(
     val icon: ImageVector
 )
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 data class Workout(
     val id: Int,
@@ -79,6 +83,7 @@ data class Workout(
     val weeks: Int
 )
 
+@OptIn(InternalSerializationApi::class)
 class MainActivity : ComponentActivity() {
     private val workoutViewModel: WorkoutViewModel by viewModels {
         WorkoutViewModelFactory(applicationContext)
@@ -140,6 +145,11 @@ fun MainScreen(viewModel: WorkoutViewModel) {
                 onConfirmation = { newName, newDescription ->
                     viewModel.updateWorkout(workoutToEdit!!.id, newName, newDescription)
                     workoutToEdit = null
+                },
+                // CORRECTION : On gère le clic sur "Supprimer"
+                onDelete = {
+                    viewModel.deleteWorkout(workoutToEdit!!.id)
+                    workoutToEdit = null
                 }
             )
         }
@@ -148,7 +158,7 @@ fun MainScreen(viewModel: WorkoutViewModel) {
 
 
 @Composable
-fun TopBar(openAddDialog: MutableState<Boolean>) { // CORRECTION
+fun TopBar(openAddDialog: MutableState<Boolean>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -164,7 +174,7 @@ fun TopBar(openAddDialog: MutableState<Boolean>) { // CORRECTION
         )
         Spacer(modifier = Modifier.weight(1f))
         Button(
-            onClick = { openAddDialog.value = true }, // CORRECTION
+            onClick = { openAddDialog.value = true },
             colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
             shape = RoundedCornerShape(14.dp)
         ) {
@@ -277,7 +287,7 @@ fun MyBottomNavigationBar() {
         }
     }
 }
-// test
+
 @Composable
 fun AlertDialogExample(
     onDismissRequest: () -> Unit,
@@ -287,47 +297,123 @@ fun AlertDialogExample(
     var nomDesc by remember { mutableStateOf("") }
     var nbWeek by remember { mutableStateOf("") }
 
+    val isNameValid = nomProg.isNotBlank()
+    val isWeeksValid = nbWeek.toIntOrNull() in 1..52
+    val isConfirmEnabled = isNameValid && isWeeksValid
+
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        confirmButton = { TextButton(onClick = { onConfirmation(nomProg, nomDesc, nbWeek) }) { Text("Confirmer", color = GymRed) } },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirmation(nomProg, nomDesc, nbWeek) },
+                enabled = isConfirmEnabled
+            ) {
+                Text("Confirmer", color = if (isConfirmEnabled) GymRed else Color.Gray)
+            }
+        },
         dismissButton = { TextButton(onClick = onDismissRequest) { Text("Annuler", color = GymRed) } },
         containerColor = GymSecondaryBackgroundColor,
         title = { Text("Nouveau Programme", color = Color.Gray, fontSize = 25.sp) },
         text = {
             Column {
                 Text("Nom du programme", color = GymRed, fontSize = 13.sp)
-                TextField(value = nomProg, onValueChange = { nomProg = it }, label = { Text("Ex: PPL") }, singleLine = true, colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = GymRed, focusedIndicatorColor = GymRed, unfocusedIndicatorColor = Color.Gray, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedLabelColor = Color.White, unfocusedLabelColor = Color.Gray))
+                TextField(
+                    value = nomProg,
+                    onValueChange = { nomProg = it },
+                    label = { Text("Ex: PPL") },
+                    singleLine = true,
+                    isError = !isNameValid,
+                    colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = GymRed, focusedIndicatorColor = GymRed, unfocusedIndicatorColor = Color.Gray, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedLabelColor = Color.White, unfocusedLabelColor = Color.Gray)
+                )
                 Spacer(modifier = Modifier.padding(vertical = 8.dp))
                 Text("Description du programme", color = GymRed, fontSize = 13.sp)
-                TextField(value = nomDesc, onValueChange = { nomDesc = it }, label = { Text("Focus sur les pectoraux...") }, singleLine = true, colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = GymRed, focusedIndicatorColor = GymRed, unfocusedIndicatorColor = Color.Gray, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedLabelColor = Color.White, unfocusedLabelColor = Color.Gray))
+                TextField(
+                    value = nomDesc,
+                    onValueChange = { nomDesc = it },
+                    label = { Text("Focus sur les pectoraux... (Optionnel)") },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = GymRed,
+                        focusedIndicatorColor = GymRed,
+                        unfocusedIndicatorColor = Color.Gray,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.Gray
+                    )
+                )
                 Spacer(modifier = Modifier.padding(vertical = 8.dp))
                 Text("Nombre de semaines", color = GymRed, fontSize = 13.sp)
                 TextField(
                     value = nbWeek,
-                    onValueChange = { newText -> if (newText.all { it.isDigit() }) { nbWeek = newText } },
+                    onValueChange = { newText ->
+                        if (newText.all { it.isDigit() } && (newText.toIntOrNull() ?: 0) <= 52) {
+                            nbWeek = newText
+                        }
+                    },
                     label = { Text("Ex: 12") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = GymRed, focusedIndicatorColor = GymRed, unfocusedIndicatorColor = Color.Gray, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedLabelColor = Color.White, unfocusedLabelColor = Color.Gray)
+                    isError = !isWeeksValid,
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = GymRed,
+                        focusedIndicatorColor = GymRed,
+                        unfocusedIndicatorColor = Color.Gray,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.Gray
+                    )
                 )
             }
         }
     )
 }
 
+// CORRECTION : Le dialogue de modification a maintenant un bouton "Supprimer"
 @Composable
 fun EditWorkoutDialog(
     workout: Workout,
     onDismissRequest: () -> Unit,
     onConfirmation: (newName: String, newDescription: String) -> Unit,
+    onDelete: () -> Unit // Ajout du callback pour la suppression
 ) {
     var nomProg by remember { mutableStateOf(workout.name) }
     var nomDesc by remember { mutableStateOf(workout.description) }
+    val isNameValid = nomProg.isNotBlank()
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        confirmButton = { TextButton(onClick = { onConfirmation(nomProg, nomDesc) }) { Text("Sauvegarder", color = GymRed) } },
-        dismissButton = { TextButton(onClick = onDismissRequest) { Text("Annuler", color = GymRed) } },
+        // On utilise une Row pour aligner nos 3 boutons
+        confirmButton = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. Le bouton Supprimer, aligné à gauche
+                TextButton(onClick = onDelete) {
+                    Text("Supprimer", color = Color.Gray)
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                // 2. Les boutons Annuler et Sauvegarder, à droite
+                TextButton(onClick = onDismissRequest) {
+                    Text("Annuler", color = GymRed)
+                }
+                TextButton(
+                    onClick = { onConfirmation(nomProg, nomDesc) },
+                    enabled = isNameValid
+                ) {
+                    Text("Sauvegarder", color = if (isNameValid) GymRed else Color.Gray)
+                }
+            }
+        },
+        // On laisse dismissButton vide car on gère tout dans confirmButton
+        dismissButton = {},
         containerColor = GymSecondaryBackgroundColor,
         title = { Text("Modifier le Programme", color = Color.Gray, fontSize = 25.sp) },
         text = {
@@ -337,6 +423,7 @@ fun EditWorkoutDialog(
                     value = nomProg,
                     onValueChange = { nomProg = it },
                     singleLine = true,
+                    isError = !isNameValid,
                     colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = GymRed, focusedIndicatorColor = GymRed, unfocusedIndicatorColor = Color.Gray, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedLabelColor = Color.White, unfocusedLabelColor = Color.Gray)
                 )
                 Spacer(modifier = Modifier.padding(vertical = 8.dp))
@@ -344,8 +431,19 @@ fun EditWorkoutDialog(
                 TextField(
                     value = nomDesc,
                     onValueChange = { nomDesc = it },
+                    label = { Text("(Optionnel)") },
                     singleLine = true,
-                    colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = GymRed, focusedIndicatorColor = GymRed, unfocusedIndicatorColor = Color.Gray, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedLabelColor = Color.White, unfocusedLabelColor = Color.Gray)
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = GymRed,
+                        focusedIndicatorColor = GymRed,
+                        unfocusedIndicatorColor = Color.Gray,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.Gray
+                    )
                 )
             }
         }
@@ -365,7 +463,7 @@ fun MainScreenPreview() {
                 )
             )
         }
-        val openAddDialog = remember { mutableStateOf(false) } // CORRECTION
+        val openAddDialog = remember { mutableStateOf(false) }
 
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -373,7 +471,7 @@ fun MainScreenPreview() {
         ) {
             Scaffold(
                 containerColor = Color.Transparent,
-                topBar = { TopBar(openAddDialog = openAddDialog) }, // CORRECTION
+                topBar = { TopBar(openAddDialog = openAddDialog) },
                 bottomBar = { MyBottomNavigationBar() }
             ) { innerPadding ->
                 LazyColumn(

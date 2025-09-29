@@ -58,10 +58,14 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    // AJOUTE CETTE LIGNE pour la traduction en JSON
+    // Dépendance pour la traduction en JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
-    // AJOUTE CETTE LIGNE pour utiliser les ViewModels facilement
+    // Dépendance pour utiliser les ViewModels facilement
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+
+    // LA LIGNE MANQUANTE EST ICI :
+    // Ajoute cette dépendance pour la navigation dans Compose
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
 }

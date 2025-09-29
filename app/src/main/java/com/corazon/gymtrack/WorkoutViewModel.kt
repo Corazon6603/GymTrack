@@ -59,6 +59,21 @@ class WorkoutViewModel(context: Context) : ViewModel() {
         // 4. On sauvegarde la nouvelle liste complète dans le fichier
         repository.saveWorkouts(updatedList)
     }
+
+    fun deleteWorkout(id: Int) {
+        // 1. On récupère la liste actuelle
+        val currentList = workoutList.value
+
+        // 2. On filtre la liste pour ne garder que les entraînements
+        //    DONT l'id est DIFFÉRENT de celui qu'on veut supprimer.
+        val updatedList = currentList.filter { it.id != id }
+
+        // 3. On met à jour la liste dans le ViewModel, ce qui rafraîchit l'écran
+        workoutList.value = updatedList
+
+        // 4. On sauvegarde la nouvelle liste (sans l'élément supprimé)
+        repository.saveWorkouts(updatedList)
+    }
 }
 
 
@@ -71,3 +86,5 @@ class WorkoutViewModelFactory(private val context: Context) : ViewModelProvider.
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+
+
