@@ -150,7 +150,9 @@ fun GymTrackApp(workoutViewModel: WorkoutViewModel) {
                     NotesScreen()
                 }
                 composable(Screen.Nutrition.route) {
-                    val nutritionViewModel: NutritionViewModel = viewModel()
+                    val nutritionViewModel: NutritionViewModel = viewModel(
+                        factory = NutritionViewModelFactory(LocalContext.current.applicationContext)
+                    )
                     NutritionScreen(viewModel = nutritionViewModel)
                 }
                 composable(Screen.Stats.route) {
@@ -213,49 +215,64 @@ fun TrainingScreen(viewModel: WorkoutViewModel) {
 
 @Composable
 fun NutritionScreen(viewModel: NutritionViewModel) {
+    var showCreateFoodDialog by remember { mutableStateOf(false) }
+    var showFoodListDialog by remember { mutableStateOf(false) }
+    var foodToEdit by remember { mutableStateOf<FoodItem?>(null) }
+
     val nutrients = viewModel.nutrients.value
-    // On récupère les nouvelles données du ViewModel
     val mealCategories = viewModel.mealCategories.value
     val expandedCategory = viewModel.expandedCategory.value
+    val foodList = viewModel.foodList.value
 
-    // On transforme la page entière en une seule liste défilante
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // SECTION 1 : OBJECTIFS QUOTIDIENS
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Objectifs Quotidiens",
-                    color = Color.White,
-                    fontSize = 15.sp, // Taille de police réduite
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = { viewModel.resetDailyValues() }) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Réinitialiser",
-                        tint = GymRed
-                    )
-                }
-            }
+            TopBar(
+                title = "Objectifs Quotidiens",
+                showAddButton = false,
+                onResetClick = { viewModel.resetDailyValues() }
+            )
         }
-
         items(nutrients) { nutrient ->
             NutrientCard(nutrient = nutrient)
         }
-
-        // SECTION 2 : REPAS DE LA JOURNÉE
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Aliments",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = GymSecondaryBackgroundColor)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = { showCreateFoodDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = GymRed)
+                    ) {
+                        Text("Créer un aliment")
+                    }
+                    TextButton(onClick = { showFoodListDialog = true }) {
+                        Text("Voir les aliments", color = Color.Gray)
+                    }
+                }
+            }
+        }
         item {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -265,20 +282,52 @@ fun NutritionScreen(viewModel: NutritionViewModel) {
                 fontWeight = FontWeight.Bold
             )
         }
-
         items(mealCategories) { category ->
             MealCategoryCard(
                 category = category,
-                // On dit à la carte si elle doit être ouverte ou fermée
                 isExpanded = expandedCategory == category.label,
-                // On connecte le clic à la fonction du ViewModel
                 onClick = { viewModel.onCategoryClicked(category.label) }
             )
         }
     }
+
+    if (showCreateFoodDialog) {
+        CreateFoodDialog(
+            onDismissRequest = { showCreateFoodDialog = false },
+            onConfirmation = { name, calories, protein, carbs, servingType, unitWeight ->
+                viewModel.addFood(name, calories, protein, carbs, servingType, unitWeight)
+                showCreateFoodDialog = false
+            }
+        )
+    }
+
+    if (showFoodListDialog) {
+        FoodListDialog(
+            foodList = foodList,
+            onDismissRequest = { showFoodListDialog = false },
+            onFoodClick = { food ->
+                showFoodListDialog = false
+                foodToEdit = food
+            }
+        )
+    }
+
+    if (foodToEdit != null) {
+        EditFoodDialog(
+            foodItem = foodToEdit!!,
+            onDismissRequest = { foodToEdit = null },
+            onConfirmation = { updatedFood ->
+                viewModel.updateFood(updatedFood)
+                foodToEdit = null
+            },
+            onDelete = { foodId ->
+                viewModel.deleteFood(foodId)
+                foodToEdit = null
+            }
+        )
+    }
 }
 
-// --- LE NOUVEAU COMPOSABLE POUR LA CARTE DE REPAS EXTENSIBLE ---
 @Composable
 fun MealCategoryCard(
     category: MealCategory,
@@ -288,14 +337,13 @@ fun MealCategoryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick), // On rend la carte entière cliquable
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = GymSecondaryBackgroundColor)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Ligne du haut, toujours visible
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = category.icon,
@@ -311,18 +359,13 @@ fun MealCategoryCard(
                     fontSize = 16.sp
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                // L'icône change (flèche haut/bas) si la carte est ouverte
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = "Dérouler",
                     tint = Color.Gray
                 )
             }
-
-            // Contenu extensible, avec une animation
             AnimatedVisibility(visible = isExpanded) {
-                // Ici, tu mettras le contenu de chaque repas (liste d'aliments, etc.)
-                // Pour l'instant, on met un simple placeholder.
                 Column {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
@@ -456,7 +499,7 @@ fun TopBar(
         } else {
             IconButton(onClick = onResetClick) {
                 Icon(
-                    imageVector = Icons.Default.AccountCircle,
+                    imageVector = Icons.Default.Refresh,
                     contentDescription = "Réinitialiser",
                     tint = GymRed
                 )
@@ -702,15 +745,166 @@ fun EditWorkoutDialog(
     )
 }
 
+@Composable
+fun CreateFoodDialog(
+    onDismissRequest: () -> Unit,
+    onConfirmation: (name: String, calories: String, protein: String, carbs: String, servingType: ServingType, unitWeight: String?) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var calories by remember { mutableStateOf("") }
+    var protein by remember { mutableStateOf("") }
+    var carbs by remember { mutableStateOf("") }
+    var unitWeight by remember { mutableStateOf("") }
+    var servingType by remember { mutableStateOf(ServingType.PER_100G) }
+
+    val isConfirmEnabled = name.isNotBlank() && calories.isNotBlank() && protein.isNotBlank() && carbs.isNotBlank() &&
+            (servingType == ServingType.PER_100G || (servingType == ServingType.PER_UNIT && unitWeight.isNotBlank()))
+
+    val textFieldColors = TextFieldDefaults.colors(
+        focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = GymRed,
+        focusedIndicatorColor = GymRed, unfocusedIndicatorColor = Color.Gray,
+        focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+        focusedLabelColor = Color.White, unfocusedLabelColor = Color.Gray
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("Créer un Aliment", color = Color.Gray) },
+        containerColor = GymSecondaryBackgroundColor,
+        text = {
+            Column {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    Button(onClick = { servingType = ServingType.PER_100G }, colors = ButtonDefaults.buttonColors(containerColor = if(servingType == ServingType.PER_100G) GymRed else Color.DarkGray)) { Text("Par 100g") }
+                    Spacer(Modifier.size(8.dp))
+                    Button(onClick = { servingType = ServingType.PER_UNIT }, colors = ButtonDefaults.buttonColors(containerColor = if(servingType == ServingType.PER_UNIT) GymRed else Color.DarkGray)) { Text("Par Unité") }
+                }
+                Spacer(Modifier.size(16.dp))
+                TextField(value = name, onValueChange = { name = it }, label = { Text("Nom de l'aliment") }, colors = textFieldColors, singleLine = true)
+                AnimatedVisibility(visible = servingType == ServingType.PER_UNIT) {
+                    TextField(value = unitWeight, onValueChange = { unitWeight = it }, label = { Text("Poids d'1 unité (en g)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), colors = textFieldColors, singleLine = true)
+                }
+                TextField(value = calories, onValueChange = { calories = it }, label = { Text("Calories (kcal)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), colors = textFieldColors, singleLine = true)
+                TextField(value = protein, onValueChange = { protein = it }, label = { Text("Protéines (g)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), colors = textFieldColors, singleLine = true)
+                TextField(value = carbs, onValueChange = { carbs = it }, label = { Text("Glucides (g)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), colors = textFieldColors, singleLine = true)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirmation(name, calories, protein, carbs, servingType, if (servingType == ServingType.PER_UNIT) unitWeight else null) }, enabled = isConfirmEnabled) {
+                Text("Créer", color = if (isConfirmEnabled) GymRed else Color.Gray)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) { Text("Annuler", color = GymRed) }
+        }
+    )
+}
+
+@Composable
+fun FoodListDialog(
+    foodList: List<FoodItem>,
+    onDismissRequest: () -> Unit,
+    onFoodClick: (FoodItem) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("Mes Aliments", color = Color.Gray) },
+        containerColor = GymSecondaryBackgroundColor,
+        confirmButton = {
+            TextButton(onClick = onDismissRequest) { Text("Fermer", color = GymRed) }
+        },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(foodList) { food ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onFoodClick(food) }
+                            .padding(8.dp)
+                    ) {
+                        Text(food.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        val servingText = if(food.servingType == ServingType.PER_UNIT) "Saisi par unité de ${food.unitWeight?.toInt()}g" else "Saisi par 100g"
+                        Text(servingText, color = Color.Gray, fontSize = 12.sp)
+                        Text(
+                            "Valeurs pour 100g: Kcal: ${food.caloriesPer100g.toInt()}, Prot: ${food.proteinPer100g.toInt()}g, Gluc: ${food.carbsPer100g.toInt()}g",
+                            color = Color.LightGray,
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun EditFoodDialog(
+    foodItem: FoodItem,
+    onDismissRequest: () -> Unit,
+    onConfirmation: (FoodItem) -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    var name by remember { mutableStateOf(foodItem.name) }
+    var calories by remember { mutableStateOf(foodItem.caloriesPer100g.toInt().toString()) }
+    var protein by remember { mutableStateOf(foodItem.proteinPer100g.toInt().toString()) }
+    var carbs by remember { mutableStateOf(foodItem.carbsPer100g.toInt().toString()) }
+
+    val isConfirmEnabled = name.isNotBlank() && calories.isNotBlank() && protein.isNotBlank() && carbs.isNotBlank()
+    val textFieldColors = TextFieldDefaults.colors(
+        focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = GymRed,
+        focusedIndicatorColor = GymRed, unfocusedIndicatorColor = Color.Gray,
+        focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+        focusedLabelColor = Color.White, unfocusedLabelColor = Color.Gray
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("Modifier l'Aliment", color = Color.Gray) },
+        containerColor = GymSecondaryBackgroundColor,
+        text = {
+            Column {
+                Text("Nom de l'aliment", color = GymRed, fontSize = 13.sp)
+                TextField(value = name, onValueChange = { name = it }, singleLine = true, colors = textFieldColors)
+                Text("Valeurs nutritionnelles pour 100g", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                TextField(value = calories, onValueChange = { calories = it }, label = { Text("Calories (kcal)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, colors = textFieldColors)
+                TextField(value = protein, onValueChange = { protein = it }, label = { Text("Protéines (g)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, colors = textFieldColors)
+                TextField(value = carbs, onValueChange = { carbs = it }, label = { Text("Glucides (g)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, colors = textFieldColors)
+            }
+        },
+        confirmButton = {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { onDelete(foodItem.id) }) { Text("Supprimer", color = Color.Gray) }
+                Spacer(modifier = Modifier.weight(1f))
+                TextButton(onClick = onDismissRequest) { Text("Annuler", color = GymRed) }
+                TextButton(
+                    onClick = {
+                        val updatedFood = foodItem.copy(
+                            name = name,
+                            caloriesPer100g = calories.toFloatOrNull() ?: 0f,
+                            proteinPer100g = protein.toFloatOrNull() ?: 0f,
+                            carbsPer100g = carbs.toFloatOrNull() ?: 0f
+                        )
+                        onConfirmation(updatedFood)
+                    },
+                    enabled = isConfirmEnabled
+                ) {
+                    Text("Sauvegarder", color = if (isConfirmEnabled) GymRed else Color.Gray)
+                }
+            }
+        },
+        dismissButton = {}
+    )
+}
+
 
 @SuppressLint("UnrememberedMutableState")
 @Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
     GymTrackTheme {
-        // La preview ne peut pas gérer la navigation complexe, donc on affiche un seul écran à la fois.
-        // Ici, on prévisualise l'écran de Nutrition
-        val fakeNutritionViewModel = remember { NutritionViewModel() }
-        NutritionScreen(viewModel = fakeNutritionViewModel)
+        val context = LocalContext.current
+        val fakeViewModel = remember { NutritionViewModel(context) }
+        NutritionScreen(viewModel = fakeViewModel)
     }
 }
