@@ -237,7 +237,7 @@ fun NutritionScreen(viewModel: NutritionViewModel) {
                 Text(
                     text = "Objectifs Quotidiens",
                     color = Color.White,
-                    fontSize = 18.sp, // Taille de police réduite
+                    fontSize = 15.sp, // Taille de police réduite
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.weight(1f))
