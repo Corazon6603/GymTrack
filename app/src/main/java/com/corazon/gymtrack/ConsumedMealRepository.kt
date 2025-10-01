@@ -1,0 +1,40 @@
+// DANS le fichier ConsumedMealRepository.kt
+
+package com.corazon.gymtrack
+
+import android.content.Context
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.File
+import java.io.IOException
+
+class ConsumedMealRepository(private val context: Context) {
+
+    private val fileName = "consumed_meals.json"
+
+    fun saveConsumedMeals(meals: List<ConsumedMeal>) {
+        try {
+            val jsonString = Json.encodeToString(meals)
+            context.openFileOutput(fileName, Context.MODE_PRIVATE).use {
+                it.write(jsonString.toByteArray())
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun loadConsumedMeals(): List<ConsumedMeal> {
+        return try {
+            val file = File(context.filesDir, fileName)
+            if (!file.exists()) {
+                emptyList()
+            } else {
+                val jsonString = context.openFileInput(fileName).bufferedReader().use { it.readText() }
+                Json.decodeFromString(jsonString)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+}
